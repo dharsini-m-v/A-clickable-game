@@ -1,0 +1,173 @@
+"""
+main.py
+-------
+FastAPI backend for the Wonder World image editor.
+
+Endpoints
+    POST /upload    -> upload an image, returns a session_id + preview
+    POST /process    -> apply one OpenCV operation to the session's current image
+    POST /reset       -> reset current edit chain back to the original upload
+    GET  /download    -> download the currently edited image
+    GET  /image/{sid}/{which} -> quick preview of original/current image
+
+Run with:
+    cd backend
+    pip install -r requirements.txt
+    uvicorn main:app --reload --port 8000
+"""
+
+import io
+import os
+import uuid
+import json
+
+import cv2
+import numpy as np
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+
+import image_processor as ip
+
+app = FastAPI(title="Wonder World Image Editor API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# In-memory session store: { session_id: {"original": np.ndarray, "current": np.ndarray, "filename": str} }
+SESSIONS = {}
+
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+def _decode(file_bytes: bytes):
+    arr = np.frombuffer(file_bytes, dtype=np.uint8)
+    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+    if img is None:
+        raise HTTPException(status_code=400, detail="Could not decode image. Use JPG or PNG.")
+    return img
+
+
+def _encode(img: np.ndarray, ext: str = ".png"):
+    ok, buf = cv2.imencode(ext, img)
+    if not ok:
+        raise HTTPException(status_code=500, detail="Could not encode image.")
+    return io.BytesIO(buf.tobytes())
+
+
+@app.post("/upload")
+async def upload(file: UploadFile = File(...)):
+    if file.content_type not in ("image/jpeg", "image/jpg", "image/png"):
+        raise HTTPException(status_code=400, detail="Only JPG and PNG images are supported.")
+
+    file_bytes = await file.read()
+    img = _decode(file_bytes)
+
+    session_id = str(uuid.uuid4())
+    SESSIONS[session_id] = {
+        "original": img.copy(),
+        "current": img.copy(),
+        "filename": file.filename,
+    }
+
+    h, w = img.shape[:2]
+    return {
+        "session_id": session_id,
+        "filename": file.filename,
+        "width": w,
+        "height": h,
+    }
+
+
+@app.post("/process")
+async def process(
+    session_id: str = Form(...),
+    operation: str = Form(...),
+    params: str = Form("{}"),
+    base: str = Form("current"),  # "current" = chain edits, "original" = always start fresh
+):
+    session = SESSIONS.get(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found. Please upload an image again.")
+
+    try:
+        param_dict = json.loads(params) if params else {}
+    except json.JSONDecodeError:
+        param_dict = {}
+
+    source = session["original"] if base == "original" else session["current"]
+
+    try:
+        result = ip.apply_operation(source, operation, param_dict)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    session["current"] = result
+    h, w = result.shape[:2]
+
+    buf = _encode(result, ".png")
+    return StreamingResponse(
+        buf,
+        media_type="image/png",
+        headers={"X-Image-Width": str(w), "X-Image-Height": str(h)},
+    )
+
+
+@app.post("/reset")
+async def reset(session_id: str = Form(...)):
+    session = SESSIONS.get(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    session["current"] = session["original"].copy()
+    h, w = session["current"].shape[:2]
+    buf = _encode(session["current"], ".png")
+    return StreamingResponse(
+        buf,
+        media_type="image/png",
+        headers={"X-Image-Width": str(w), "X-Image-Height": str(h)},
+    )
+
+
+@app.get("/download")
+async def download(session_id: str, fmt: str = "png"):
+    session = SESSIONS.get(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    ext = ".png" if fmt.lower() == "png" else ".jpg"
+    buf = _encode(session["current"], ext)
+    media_type = "image/png" if ext == ".png" else "image/jpeg"
+    filename = f"wonder-world-edit{ext}"
+    return StreamingResponse(
+        buf,
+        media_type=media_type,
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@app.get("/image/{session_id}/{which}")
+async def get_image(session_id: str, which: str):
+    session = SESSIONS.get(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    if which not in ("original", "current"):
+        raise HTTPException(status_code=400, detail="which must be 'original' or 'current'")
+    buf = _encode(session[which], ".png")
+    return StreamingResponse(buf, media_type="image/png")
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
+# Serve the frontend as static files at the root, so the whole app can be
+# opened from a single `uvicorn` run at http://localhost:8000
+frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
+if os.path.isdir(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")

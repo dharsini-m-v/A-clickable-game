@@ -1,0 +1,229 @@
+"""
+image_processor.py
+-------------------
+All real image-editing logic lives here. Every operation uses OpenCV / NumPy —
+nothing is faked with CSS. Each function takes a BGR numpy image (and optional
+parameters) and returns a new BGR numpy image.
+"""
+
+import cv2
+import numpy as np
+
+
+# ---------------------------------------------------------------------------
+# BASIC
+# ---------------------------------------------------------------------------
+
+def rotate_clockwise(img):
+    return cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+
+
+def rotate_counterclockwise(img):
+    return cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+
+def flip_horizontal(img):
+    return cv2.flip(img, 1)
+
+
+def flip_vertical(img):
+    return cv2.flip(img, 0)
+
+
+def resize(img, width=None, height=None):
+    h, w = img.shape[:2]
+    width = int(width) if width else w
+    height = int(height) if height else h
+    width = max(1, min(width, 4000))
+    height = max(1, min(height, 4000))
+    return cv2.resize(img, (width, height), interpolation=cv2.INTER_AREA)
+
+
+# ---------------------------------------------------------------------------
+# COLOUR
+# ---------------------------------------------------------------------------
+
+def grayscale(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    return cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
+
+def adjust_channels(img, r=1.0, g=1.0, b=1.0):
+    out = img.astype(np.float32)
+    b_ch, g_ch, r_ch = cv2.split(out)
+    b_ch *= float(b)
+    g_ch *= float(g)
+    r_ch *= float(r)
+    out = cv2.merge([b_ch, g_ch, r_ch])
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
+def adjust_brightness(img, value=0):
+    """value in [-100, 100]"""
+    value = int(value)
+    return cv2.convertScaleAbs(img, alpha=1.0, beta=value)
+
+
+def adjust_contrast(img, value=0):
+    """value in [-100, 100] -> alpha in roughly [0.3, 2.5]"""
+    value = int(value)
+    alpha = 1.0 + (value / 100.0) * 1.5
+    alpha = max(0.1, alpha)
+    return cv2.convertScaleAbs(img, alpha=alpha, beta=0)
+
+
+def invert(img):
+    return cv2.bitwise_not(img)
+
+
+def sepia(img):
+    kernel = np.array([[0.272, 0.534, 0.131],
+                        [0.349, 0.686, 0.168],
+                        [0.393, 0.769, 0.189]])
+    # kernel expects RGB order; img is BGR, so flip kernel rows/cols accordingly
+    sepia_img = cv2.transform(img, kernel[::-1, ::-1])
+    return np.clip(sepia_img, 0, 255).astype(np.uint8)
+
+
+# ---------------------------------------------------------------------------
+# FILTERS
+# ---------------------------------------------------------------------------
+
+def _odd(k):
+    k = int(k)
+    if k < 1:
+        k = 1
+    if k % 2 == 0:
+        k += 1
+    return k
+
+
+def blur(img, ksize=5):
+    k = _odd(ksize)
+    return cv2.blur(img, (k, k))
+
+
+def gaussian_blur(img, ksize=5):
+    k = _odd(ksize)
+    return cv2.GaussianBlur(img, (k, k), 0)
+
+
+def median_blur(img, ksize=5):
+    k = _odd(ksize)
+    return cv2.medianBlur(img, k)
+
+
+def sharpen(img):
+    kernel = np.array([[0, -1, 0],
+                        [-1, 5, -1],
+                        [0, -1, 0]])
+    return cv2.filter2D(img, -1, kernel)
+
+
+def edge_detect(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 100, 200)
+    return cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+
+
+def emboss(img):
+    kernel = np.array([[-2, -1, 0],
+                        [-1, 1, 1],
+                        [0, 1, 2]])
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    embossed = cv2.filter2D(gray, -1, kernel) + 128
+    embossed = np.clip(embossed, 0, 255).astype(np.uint8)
+    return cv2.cvtColor(embossed, cv2.COLOR_GRAY2BGR)
+
+
+# ---------------------------------------------------------------------------
+# THRESHOLD
+# ---------------------------------------------------------------------------
+
+def threshold_binary(img, thresh=127):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    _, out = cv2.threshold(gray, int(thresh), 255, cv2.THRESH_BINARY)
+    return cv2.cvtColor(out, cv2.COLOR_GRAY2BGR)
+
+
+def threshold_adaptive(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    out = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                 cv2.THRESH_BINARY, 11, 2)
+    return cv2.cvtColor(out, cv2.COLOR_GRAY2BGR)
+
+
+def threshold_otsu(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    _, out = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    return cv2.cvtColor(out, cv2.COLOR_GRAY2BGR)
+
+
+# ---------------------------------------------------------------------------
+# EDGE DETECTION
+# ---------------------------------------------------------------------------
+
+def canny(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 100, 200)
+    return cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+
+
+def sobel(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    sx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+    sy = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+    mag = cv2.magnitude(sx, sy)
+    mag = np.clip(mag, 0, 255).astype(np.uint8)
+    return cv2.cvtColor(mag, cv2.COLOR_GRAY2BGR)
+
+
+def laplacian(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    lap = cv2.Laplacian(gray, cv2.CV_64F)
+    lap = np.clip(np.absolute(lap), 0, 255).astype(np.uint8)
+    return cv2.cvtColor(lap, cv2.COLOR_GRAY2BGR)
+
+
+# ---------------------------------------------------------------------------
+# DISPATCH TABLE — maps an operation name (sent from the frontend) to a function
+# ---------------------------------------------------------------------------
+
+OPERATIONS = {
+    "rotate_cw": lambda img, p: rotate_clockwise(img),
+    "rotate_ccw": lambda img, p: rotate_counterclockwise(img),
+    "flip_h": lambda img, p: flip_horizontal(img),
+    "flip_v": lambda img, p: flip_vertical(img),
+    "resize": lambda img, p: resize(img, p.get("width"), p.get("height")),
+
+    "grayscale": lambda img, p: grayscale(img),
+    "channels": lambda img, p: adjust_channels(
+        img, p.get("r", 1.0), p.get("g", 1.0), p.get("b", 1.0)),
+    "brightness": lambda img, p: adjust_brightness(img, p.get("value", 0)),
+    "contrast": lambda img, p: adjust_contrast(img, p.get("value", 0)),
+    "invert": lambda img, p: invert(img),
+    "sepia": lambda img, p: sepia(img),
+
+    "blur": lambda img, p: blur(img, p.get("ksize", 5)),
+    "gaussian_blur": lambda img, p: gaussian_blur(img, p.get("ksize", 5)),
+    "median_blur": lambda img, p: median_blur(img, p.get("ksize", 5)),
+    "sharpen": lambda img, p: sharpen(img),
+    "edge_detect": lambda img, p: edge_detect(img),
+    "emboss": lambda img, p: emboss(img),
+
+    "threshold_binary": lambda img, p: threshold_binary(img, p.get("thresh", 127)),
+    "threshold_adaptive": lambda img, p: threshold_adaptive(img),
+    "threshold_otsu": lambda img, p: threshold_otsu(img),
+
+    "canny": lambda img, p: canny(img),
+    "sobel": lambda img, p: sobel(img),
+    "laplacian": lambda img, p: laplacian(img),
+}
+
+
+def apply_operation(img, op_name, params=None):
+    params = params or {}
+    fn = OPERATIONS.get(op_name)
+    if fn is None:
+        raise ValueError(f"Unknown operation: {op_name}")
+    return fn(img, params)

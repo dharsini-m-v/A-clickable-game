@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wonder World</title>
+<style>
+/* =========================================================================
+   Wonder World — stylesheet
+   ========================================================================= */
+
+:root {
+  --font-display: 'Baloo 2', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+
+  --radius-lg: 28px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+
+  --shadow-soft: 0 12px 40px rgba(60, 40, 90, 0.14);
+  --shadow-glow: 0 0 24px;
+
+  --transition-fast: 180ms cubic-bezier(.4,0,.2,1);
+  --transition-med: 420ms cubic-bezier(.22,1,.36,1);
+}
+
+/* -------------------------- LIGHT THEME TOKENS -------------------------- */
+[data-theme="light"] {
+  --sky-top: #fef3e2;
+  --sky-mid: #ffd9c2;
+  --sky-bottom: #ffb3c6;
+  --sun-color: #ffd76a;
+  --sun-glow: rgba(255, 200, 90, 0.65);
+  --cloud-color: rgba(255, 255, 255, 0.85);
+
+  --bg-app: #fff6ec;
+  --text-primary: #3a2b4d;
+  --text-secondary: #6c5a7d;
+
+  --accent-1: #ff8a65;   /* coral */
+  --accent-2: #ffb84d;   /* amber */
+  --accent-3: #7ee0c3;   /* mint */
+  --accent-4: #8e7cff;   /* violet */
+  --accent-5: #ff6fa5;   /* pink */
+
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --glass-shadow: rgba(120, 80, 60, 0.15);
+
+  --panel-bg: rgba(255, 255, 255, 0.62);
+  --btn-primary-grad: linear-gradient(135deg, #ff8a65, #ff6fa5 60%, #8e7cff);
+  --btn-primary-text: #ffffff;
+
+  --track-bg: rgba(120, 90, 130, 0.18);
+}
+
+/* -------------------------- DARK THEME TOKENS -------------------------- */
+[data-theme="dark"] {
+  --sky-top: #0d0a2b;
+  --sky-mid: #1c1447;
+  --sky-bottom: #2f1f5e;
+  --sun-color: #eae6ff;
+  --sun-glow: rgba(180, 170, 255, 0.55);
+  --cloud-color: rgba(255, 255, 255, 0.06);
+
+  --bg-app: #0b0921;
+  --text-primary: #f1edff;
+  --text-secondary: #b6adde;
+
+  --accent-1: #8e7cff;
+  --accent-2: #6fd3ff;
+  --accent-3: #7ee0c3;
+  --accent-4: #ff6fa5;
+  --accent-5: #ffd76a;
+
+  --glass-bg: rgba(30, 22, 60, 0.55);
+  --glass-border: rgba(160, 150, 255, 0.22);
+  --glass-shadow: rgba(0, 0, 0, 0.45);
+
+  --panel-bg: rgba(24, 18, 48, 0.65);
+  --btn-primary-grad: linear-gradient(135deg, #8e7cff, #6fd3ff 60%, #ff6fa5);
+  --btn-primary-text: #0b0921;
+
+  --track-bg: rgba(180, 170, 255, 0.18);
+}
+
+/* -------------------------------- RESET --------------------------------- */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--bg-app);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  transition: background var(--transition-med), color var(--transition-med);
+}
+h1, h2, h3 { font-family: var(--font-display); margin: 0; }
+p { margin: 0; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input { font-family: inherit; }
+img { max-width: 100%; display: block; }
+::selection { background: var(--accent-4); color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* ------------------------------- SCREENS -------------------------------- */
+.screen {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(24px) scale(0.98);
+  transition: opacity var(--transition-med), transform var(--transition-med), visibility 0s linear var(--transition-med);
+  pointer-events: none;
+}
+.screen--active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  transition: opacity var(--transition-med), transform var(--transition-med);
+  pointer-events: auto;
+}
+
+/* --------------------------------- SKY ---------------------------------- */
+.sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-bottom) 100%);
+  overflow: hidden;
+  transition: background var(--transition-med);
+}
+.sky--secondary { opacity: 0.9; }
+
+.sun-moon {
+  position: absolute;
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: var(--sun-color);
+  box-shadow: 0 0 90px 30px var(--sun-glow);
+  transition: background var(--transition-med), box-shadow var(--transition-med), clip-path var(--transition-med);
+  animation: floatSun 8s ease-in-out infinite;
+}
+[data-theme="dark"] .sun-moon {
+  clip-path: path('M65,5 A60,60 0 1 0 65,125 A48,48 0 1 1 65,5 Z');
+}
+@keyframes floatSun {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-14px); }
+}
+
+.stars {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--transition-med);
+}
+[data-theme="dark"] .stars { opacity: 1; }
+.star {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: #fff;
+  border-radius: 50%;
+  animation: twinkle 3s ease-in-out infinite;
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+
+.cloud {
+  position: absolute;
+  background: var(--cloud-color);
+  border-radius: 100px;
+  filter: blur(0.5px);
+  transition: opacity var(--transition-med);
+}
+[data-theme="dark"] .cloud { opacity: 0.3; }
+.cloud::before, .cloud::after {
+  content: "";
+  position: absolute;
+  background: inherit;
+  border-radius: 50%;
+}
+.cloud--1 { width: 140px; height: 44px; top: 20%; left: -10%; animation: driftCloud 34s linear infinite; }
+.cloud--1::before { width: 70px; height: 70px; top: -34px; left: 16px; }
+.cloud--1::after { width: 54px; height: 54px; top: -22px; left: 70px; }
+.cloud--2 { width: 100px; height: 34px; top: 32%; left: -20%; animation: driftCloud 46s linear infinite 6s; }
+.cloud--2::before { width: 52px; height: 52px; top: -24px; left: 12px; }
+.cloud--2::after { width: 40px; height: 40px; top: -16px; left: 52px; }
+.cloud--3 { width: 120px; height: 38px; top: 15%; left: -15%; animation: driftCloud 40s linear infinite 12s; }
+.cloud--3::before { width: 60px; height: 60px; top: -28px; left: 14px; }
+.cloud--3::after { width: 46px; height: 46px; top: -18px; left: 60px; }
+@keyframes driftCloud {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(130vw); }
+}
+
+.hills {
+  position: absolute;
+  bottom: -6%;
+  left: -5%;
+  right: -5%;
+  height: 30%;
+  background: linear-gradient(180deg, transparent, rgba(120, 80, 140, 0.18));
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+}
+
+.glow-particles { position: absolute; inset: 0; pointer-events: none; }
+.glow-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-3), transparent 70%);
+  opacity: 0.5;
+  animation: floatParticle linear infinite;
+}
+@keyframes floatParticle {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.4; }
+  100% { transform: translateY(-120vh) translateX(20px); opacity: 0; }
+}
+
+/* ------------------------------ HOME SCREEN ------------------------------ */
+.home-content {
+  position: relative;
+  z-index: 2;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 20px;
+  gap: 18px;
+}
+.eyebrow {
+  font-size: 13px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+.hero-title {
+  font-size: clamp(48px, 10vw, 92px);
+  font-weight: 800;
+  background: linear-gradient(120deg, var(--accent-1), var(--accent-5) 40%, var(--accent-4) 75%, var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 10px 40px rgba(120, 80, 60, 0.18);
+  animation: heroPop 900ms cubic-bezier(.22,1,.36,1);
+}
+@keyframes heroPop {
+  0% { opacity: 0; transform: translateY(20px) scale(0.94); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.hero-subtitle {
+  max-width: 460px;
+  font-size: 17px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* -------------------------------- BUTTONS -------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 26px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 15px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), filter var(--transition-fast);
+}
+.btn:active { transform: scale(0.94); }
+.btn--primary {
+  background: var(--btn-primary-grad);
+  color: var(--btn-primary-text);
+  box-shadow: var(--shadow-soft);
+}
+.btn--primary:hover { filter: brightness(1.06); transform: translateY(-2px); }
+.btn--glow { box-shadow: var(--shadow-glow) var(--accent-5), var(--shadow-soft); }
+.btn--ghost {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.btn--ghost:hover { transform: translateY(-2px); }
+.btn--sm { padding: 9px 16px; font-size: 13px; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+#get-started-btn svg { transition: transform var(--transition-fast); }
+#get-started-btn:hover svg { transform: translateX(4px); }
+
+/* ------------------------------ THEME TOGGLE ------------------------------ */
+.theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 50;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  transition: transform var(--transition-fast), background var(--transition-med);
+}
+.theme-toggle:hover { transform: rotate(18deg) scale(1.08); }
+.theme-toggle:active { transform: scale(0.9); }
+
+/* -------------------------------- SPARKLES -------------------------------- */
+#sparkle-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+}
+.sparkle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: sparkleFade 700ms ease-out forwards;
+}
+@keyframes sparkleFade {
+  0% { opacity: 1; transform: scale(1) translateY(0); }
+  100% { opacity: 0; transform: scale(0.2) translateY(18px); }
+}
+
+/* -------------------------------- TOPBAR -------------------------------- */
+.topbar {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px clamp(16px, 4vw, 40px);
+}
+.topbar--editor { justify-content: space-between; flex-wrap: wrap; }
+.topbar__title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+}
+.topbar__dims { font-family: var(--font-body); font-weight: 600; font-size: 12px; color: var(--text-secondary); }
+.topbar__actions { display: flex; gap: 10px; }
+
+/* ------------------------------ MAIN SCREEN ------------------------------ */
+.main-content {
+  position: relative;
+  z-index: 2;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px 20px 60px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.section-title { font-size: clamp(28px, 5vw, 42px); font-weight: 800; margin-bottom: 20px; }
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 22px;
+  width: 100%;
+  margin-top: 10px;
+}
+.feature-card {
+  position: relative;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: var(--radius-lg);
+  padding: 30px 26px;
+  text-align: left;
+  box-shadow: var(--shadow-soft);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.feature-card--active:hover { transform: translateY(-6px) scale(1.015); box-shadow: 0 20px 50px var(--glass-shadow); }
+.feature-card--soon { opacity: 0.55; }
+.feature-card__icon { font-size: 34px; }
+.feature-card h3 { font-size: 20px; }
+.feature-card p { color: var(--text-secondary); font-weight: 600; font-size: 14.5px; line-height: 1.45; }
+.feature-card__cta { margin-top: 8px; font-weight: 800; color: var(--accent-1); }
+.feature-card__cta--muted { color: var(--text-secondary); }
+
+/* ----------------------------- EDITOR LAYOUT ----------------------------- */
+.editor-layout {
+  position: relative;
+  z-index: 2;
+  min-height: calc(100vh - 84px);
+  padding: 0 clamp(14px, 3vw, 32px) 24px;
+}
+
+.upload-zone {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.upload-zone__inner {
+  width: min(520px, 100%);
+  background: var(--glass-bg);
+  border: 2px dashed var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 56px 32px;
+  text-align: center;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+.upload-zone__inner.dragover {
+  transform: scale(1.02);
+  border-color: var(--accent-1);
+  background: var(--panel-bg);
+}
+.upload-zone__icon { font-size: 46px; margin-bottom: 6px; animation: bob 3s ease-in-out infinite; }
+@keyframes bob { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-8px);} }
+.upload-zone__inner h3 { font-size: 20px; margin-bottom: 6px; }
+.upload-zone__inner p { color: var(--text-secondary); font-weight: 700; margin: 8px 0; }
+.upload-zone__hint { font-size: 13px; color: var(--text-secondary); margin-top: 14px; font-weight: 600; }
+
+.editor-workspace {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* -------------------------------- TOOL PANEL ------------------------------ */
+.tool-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+.tool-panel__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 14px;
+  border-bottom: 1px solid var(--glass-border);
+}
+.tool-tab {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.tool-tab--active {
+  background: var(--btn-primary-grad);
+  color: var(--btn-primary-text);
+}
+.tool-panel__body { padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.tool-pane { display: none; flex-direction: column; gap: 8px; }
+.tool-pane--active { display: flex; }
+
+.tool-btn {
+  text-align: left;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.35);
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 13.5px;
+  transition: transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+  border: 1px solid transparent;
+}
+[data-theme="dark"] .tool-btn { background: rgba(255,255,255,0.05); }
+.tool-btn:hover { transform: translateX(3px); background: rgba(255,255,255,0.55); border-color: var(--glass-border); }
+[data-theme="dark"] .tool-btn:hover { background: rgba(255,255,255,0.1); }
+.tool-btn:active { transform: scale(0.97) translateX(3px); }
+.tool-btn--apply {
+  background: var(--btn-primary-grad);
+  color: var(--btn-primary-text);
+  text-align: center;
+}
+.tool-btn--apply:hover { filter: brightness(1.08); transform: translateY(-1px); }
+
+.tool-control {
+  background: rgba(255,255,255,0.28);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+[data-theme="dark"] .tool-control { background: rgba(255,255,255,0.04); }
+.tool-control label { font-size: 12.5px; font-weight: 800; color: var(--text-secondary); display: flex; justify-content: space-between; }
+.tool-control input[type="number"] {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255,255,255,0.7);
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 13px;
+}
+[data-theme="dark"] .tool-control input[type="number"] { background: rgba(0,0,0,0.25); }
+.tool-control__row { display: flex; gap: 8px; }
+.tool-control__mini { display: grid; grid-template-columns: 14px 1fr; align-items: center; gap: 6px 8px; font-size: 12px; font-weight: 800; color: var(--text-secondary); }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--track-bg);
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--btn-primary-grad);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+input[type="range"]::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent-1); border: none; cursor: pointer;
+}
+
+/* ------------------------------ PREVIEW PANEL ----------------------------- */
+.preview-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 120px);
+  overflow: hidden;
+}
+.preview-panel__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--glass-border);
+}
+.compare-toggle { display: flex; background: rgba(255,255,255,0.3); border-radius: 999px; padding: 4px; }
+[data-theme="dark"] .compare-toggle { background: rgba(255,255,255,0.05); }
+.compare-toggle__btn { padding: 7px 14px; border-radius: 999px; font-weight: 800; font-size: 12.5px; color: var(--text-secondary); }
+.compare-toggle__btn--active { background: var(--btn-primary-grad); color: var(--btn-primary-text); }
+
+.zoom-controls { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 12.5px; color: var(--text-secondary); }
+.zoom-controls button {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: rgba(255,255,255,0.35);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 800;
+  transition: background var(--transition-fast);
+}
+[data-theme="dark"] .zoom-controls button { background: rgba(255,255,255,0.06); }
+.zoom-controls button:hover { background: rgba(255,255,255,0.55); }
+#zoom-fit, #zoom-reset { width: auto; padding: 0 10px; font-size: 12px; }
+#zoom-level { min-width: 42px; text-align: center; }
+
+.preview-panel__stage {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+  background:
+    linear-gradient(45deg, rgba(0,0,0,0.03) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(0,0,0,0.03) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(0,0,0,0.03) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(0,0,0,0.03) 75%);
+  background-size: 22px 22px;
+  background-position: 0 0, 0 11px, 11px -11px, -11px 0px;
+}
+.preview-panel__frame {
+  position: relative;
+  transition: transform var(--transition-fast);
+  max-width: 100%;
+}
+#preview-img {
+  max-width: 70vw;
+  max-height: 62vh;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+  transition: opacity var(--transition-fast);
+}
+.preview-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.15);
+  border-radius: 12px;
+}
+.spinner {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 4px solid rgba(255,255,255,0.4);
+  border-top-color: var(--accent-1);
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.preview-panel__footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 18px;
+  border-top: 1px solid var(--glass-border);
+  flex-wrap: wrap;
+}
+#download-format {
+  padding: 12px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+/* --------------------------------- TOAST --------------------------------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--panel-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(14px);
+  color: var(--text-primary);
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13.5px;
+  box-shadow: var(--shadow-soft);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+  z-index: 1000;
+  max-width: 90vw;
+  text-align: center;
+}
+.toast--error { border-color: #ff6b6b; }
+.toast.toast--show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* -------------------------------- RESPONSIVE ------------------------------ */
+@media (max-width: 900px) {
+  .editor-workspace { grid-template-columns: 1fr; }
+  .tool-panel { position: static; max-height: none; }
+  .tool-panel__body { max-height: 320px; }
+  .preview-panel { min-height: 60vh; }
+  #preview-img { max-width: 88vw; max-height: 46vh; }
+}
+@media (max-width: 560px) {
+  .hero-title { font-size: 44px; }
+  .topbar__actions { width: 100%; justify-content: flex-end; }
+  .zoom-controls { flex-wrap: wrap; justify-content: center; }
+  .tool-control__row { flex-direction: column; }
+}
+
+</style>
+</head>
+<body data-theme="light">
+
+  <!-- Cursor sparkle trail layer -->
+  <div id="sparkle-layer" aria-hidden="true"></div>
+
+  <!-- Theme toggle -->
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle light and dark theme">
+    <span class="theme-toggle__icon">☀️</span>
+  </button>
+
+  <!-- ===================== HOME SCREEN ===================== -->
+  <section id="screen-home" class="screen screen--active">
+    <div class="sky" id="sky-home">
+      <div class="sun-moon" id="sun-moon"></div>
+      <div class="stars" id="stars-home"></div>
+      <div class="cloud cloud--1"></div>
+      <div class="cloud cloud--2"></div>
+      <div class="cloud cloud--3"></div>
+      <div class="glow-particles" id="particles-home"></div>
+      <div class="hills"></div>
+    </div>
+
+    <div class="home-content">
+      <p class="eyebrow">welcome to</p>
+      <h1 class="hero-title">Wonder World</h1>
+      <p class="hero-subtitle">A playful sky-lit space to imagine, create, and edit — one wonder at a time.</p>
+      <button id="get-started-btn" class="btn btn--primary btn--glow">
+        <span>Get Started</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- ===================== MAIN CONTENT SCREEN ===================== -->
+  <section id="screen-main" class="screen">
+    <div class="sky sky--secondary" id="sky-main">
+      <div class="stars" id="stars-main"></div>
+      <div class="glow-particles" id="particles-main"></div>
+    </div>
+
+    <nav class="topbar">
+      <button class="btn btn--ghost" data-nav="home">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 11L12 4L20 11M6 9.5V19C6 19.55 6.45 20 7 20H10.5V15C10.5 14.45 10.95 14 11.5 14H12.5C13.05 14 13.5 14.45 13.5 15V20H17C17.55 20 18 19.55 18 19V9.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Home
+      </button>
+    </nav>
+
+    <div class="main-content">
+      <p class="eyebrow">your creative hub</p>
+      <h2 class="section-title">What shall we make today?</h2>
+      <div class="card-grid">
+        <button class="feature-card feature-card--active" data-nav="editor">
+          <div class="feature-card__icon">🖼️</div>
+          <h3>Image Editor</h3>
+          <p>Upload a photo and transform it with real-time OpenCV-powered tools.</p>
+          <span class="feature-card__cta">Open editor →</span>
+        </button>
+        <div class="feature-card feature-card--soon">
+          <div class="feature-card__icon">✨</div>
+          <h3>More Wonders</h3>
+          <p>New creative tools are brewing behind the clouds. Stay tuned.</p>
+          <span class="feature-card__cta feature-card__cta--muted">Coming soon</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== IMAGE EDITOR SCREEN ===================== -->
+  <section id="screen-editor" class="screen">
+    <nav class="topbar topbar--editor">
+      <button class="btn btn--ghost" data-nav="home">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 11L12 4L20 11M6 9.5V19C6 19.55 6.45 20 7 20H10.5V15C10.5 14.45 10.95 14 11.5 14H12.5C13.05 14 13.5 14.45 13.5 15V20H17C17.55 20 18 19.55 18 19V9.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Home
+      </button>
+      <div class="topbar__title">
+        <span id="editor-filename">Image Editor</span>
+        <span id="editor-dims" class="topbar__dims"></span>
+      </div>
+      <div class="topbar__actions">
+        <button id="reset-current-btn" class="btn btn--ghost btn--sm" disabled>Reset Edit</button>
+        <button id="reset-all-btn" class="btn btn--ghost btn--sm" disabled>Reset All</button>
+      </div>
+    </nav>
+
+    <div class="editor-layout">
+
+      <!-- Upload state (shown when no image loaded) -->
+      <div id="upload-zone" class="upload-zone">
+        <div class="upload-zone__inner" id="dropzone">
+          <div class="upload-zone__icon">🌈</div>
+          <h3>Drop your image here</h3>
+          <p>or</p>
+          <label class="btn btn--primary" for="file-input">Choose an Image
+            <input type="file" id="file-input" accept=".jpg,.jpeg,.png,image/jpeg,image/png" hidden />
+          </label>
+          <p class="upload-zone__hint">Supports JPG, JPEG, PNG</p>
+        </div>
+      </div>
+
+      <!-- Editor workspace (shown after image loaded) -->
+      <div id="editor-workspace" class="editor-workspace" hidden>
+
+        <!-- Side tool panel -->
+        <aside class="tool-panel">
+          <div class="tool-panel__group">
+            <button class="tool-tab tool-tab--active" data-tab="basic">Basic</button>
+            <button class="tool-tab" data-tab="colour">Colour</button>
+            <button class="tool-tab" data-tab="filters">Filters</button>
+            <button class="tool-tab" data-tab="threshold">Threshold</button>
+            <button class="tool-tab" data-tab="edges">Edges</button>
+          </div>
+
+          <div class="tool-panel__body">
+
+            <div class="tool-pane tool-pane--active" data-pane="basic">
+              <button class="tool-btn" data-op="original">Original</button>
+              <button class="tool-btn" data-op="__reset_current">Reset</button>
+              <button class="tool-btn" data-op="rotate_cw">Rotate 90° CW</button>
+              <button class="tool-btn" data-op="rotate_ccw">Rotate 90° CCW</button>
+              <button class="tool-btn" data-op="flip_h">Flip Horizontal</button>
+              <button class="tool-btn" data-op="flip_v">Flip Vertical</button>
+              <div class="tool-control">
+                <label>Resize (W × H)</label>
+                <div class="tool-control__row">
+                  <input type="number" id="resize-w" min="1" max="8000" placeholder="Width" />
+                  <input type="number" id="resize-h" min="1" max="8000" placeholder="Height" />
+                </div>
+                <button class="tool-btn tool-btn--apply" data-op="resize">Apply Resize</button>
+              </div>
+            </div>
+
+            <div class="tool-pane" data-pane="colour">
+              <button class="tool-btn" data-op="grayscale">Grayscale</button>
+              <button class="tool-btn" data-op="negative">Negative / Invert</button>
+              <button class="tool-btn" data-op="sepia">Sepia</button>
+              <div class="tool-control">
+                <label>Brightness <span id="brightness-val">0</span></label>
+                <input type="range" id="brightness-slider" min="-100" max="100" value="0" data-op="brightness" />
+              </div>
+              <div class="tool-control">
+                <label>Contrast <span id="contrast-val">0</span></label>
+                <input type="range" id="contrast-slider" min="-100" max="100" value="0" data-op="contrast" />
+              </div>
+              <div class="tool-control">
+                <label>RGB Channels</label>
+                <div class="tool-control__mini">
+                  <span>R</span><input type="range" id="r-slider" min="0" max="200" value="100" />
+                  <span>G</span><input type="range" id="g-slider" min="0" max="200" value="100" />
+                  <span>B</span><input type="range" id="b-slider" min="0" max="200" value="100" />
+                </div>
+                <button class="tool-btn tool-btn--apply" data-op="rgb_adjust">Apply RGB</button>
+              </div>
+            </div>
+
+            <div class="tool-pane" data-pane="filters">
+              <button class="tool-btn" data-op="sharpen">Sharpen</button>
+              <button class="tool-btn" data-op="edge_filter">Edge Detection Filter</button>
+              <button class="tool-btn" data-op="emboss">Emboss</button>
+              <div class="tool-control">
+                <label>Blur (kernel) <span id="blur-val">5</span></label>
+                <input type="range" id="blur-slider" min="1" max="41" step="2" value="5" />
+                <button class="tool-btn tool-btn--apply" data-op="blur">Apply Blur</button>
+              </div>
+              <div class="tool-control">
+                <label>Gaussian Blur (kernel) <span id="gblur-val">5</span></label>
+                <input type="range" id="gblur-slider" min="1" max="41" step="2" value="5" />
+                <button class="tool-btn tool-btn--apply" data-op="gaussian_blur">Apply Gaussian</button>
+              </div>
+              <div class="tool-control">
+                <label>Median Blur (kernel) <span id="mblur-val">5</span></label>
+                <input type="range" id="mblur-slider" min="1" max="41" step="2" value="5" />
+                <button class="tool-btn tool-btn--apply" data-op="median_blur">Apply Median</button>
+              </div>
+            </div>
+
+            <div class="tool-pane" data-pane="threshold">
+              <div class="tool-control">
+                <label>Binary Threshold <span id="thresh-val">127</span></label>
+                <input type="range" id="thresh-slider" min="0" max="255" value="127" />
+                <button class="tool-btn tool-btn--apply" data-op="binary_threshold">Apply Binary</button>
+              </div>
+              <button class="tool-btn" data-op="adaptive_threshold">Adaptive Threshold</button>
+              <button class="tool-btn" data-op="otsu_threshold">Otsu Threshold</button>
+            </div>
+
+            <div class="tool-pane" data-pane="edges">
+              <button class="tool-btn" data-op="sobel">Sobel</button>
+              <button class="tool-btn" data-op="laplacian">Laplacian</button>
+              <div class="tool-control">
+                <label>Canny (t1 / t2)</label>
+                <div class="tool-control__row">
+                  <input type="number" id="canny-t1" min="0" max="500" value="100" />
+                  <input type="number" id="canny-t2" min="0" max="500" value="200" />
+                </div>
+                <button class="tool-btn tool-btn--apply" data-op="canny">Apply Canny</button>
+              </div>
+            </div>
+
+          </div>
+        </aside>
+
+        <!-- Preview -->
+        <main class="preview-panel">
+          <div class="preview-panel__toolbar">
+            <div class="compare-toggle">
+              <button id="view-edited" class="compare-toggle__btn compare-toggle__btn--active">Edited</button>
+              <button id="view-original" class="compare-toggle__btn">Original</button>
+            </div>
+            <div class="zoom-controls">
+              <button id="zoom-out" title="Zoom out">−</button>
+              <span id="zoom-level">100%</span>
+              <button id="zoom-in" title="Zoom in">+</button>
+              <button id="zoom-fit" title="Fit to screen">Fit</button>
+              <button id="zoom-reset" title="Reset zoom">Reset</button>
+            </div>
+          </div>
+
+          <div class="preview-panel__stage" id="preview-stage">
+            <div class="preview-panel__frame" id="preview-frame">
+              <img id="preview-img" src="" alt="Edited preview" draggable="false" />
+              <div id="preview-loading" class="preview-loading" hidden><div class="spinner"></div></div>
+            </div>
+          </div>
+
+          <div class="preview-panel__footer">
+            <button id="download-btn" class="btn btn--primary btn--glow" disabled>
+              ⬇ Download Edited Image
+            </button>
+            <select id="download-format">
+              <option value="png">PNG</option>
+              <option value="jpg">JPG</option>
+            </select>
+          </div>
+        </main>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+// =============================================================================
+// Wonder World — script.js
+// Handles: theme switching, ambient effects, screen navigation, and the
+// image editor's communication with the FastAPI + OpenCV backend.
+// =============================================================================
+
+const API_BASE = window.WONDER_API_BASE || "http://127.0.0.1:8000";
+
+// ----------------------------- THEME ----------------------------------------
+const body = document.body;
+const themeToggle = document.getElementById("theme-toggle");
+const themeIcon = themeToggle.querySelector(".theme-toggle__icon");
+
+function applyTheme(theme) {
+  body.setAttribute("data-theme", theme);
+  themeIcon.textContent = theme === "light" ? "☀️" : "🌙";
+  localStorage.setItem("wonder-theme", theme);
+}
+(function initTheme() {
+  const saved = localStorage.getItem("wonder-theme");
+  const preferred = saved || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  applyTheme(preferred);
+})();
+themeToggle.addEventListener("click", () => {
+  const next = body.getAttribute("data-theme") === "light" ? "dark" : "light";
+  applyTheme(next);
+});
+
+// ----------------------------- STARS + PARTICLES -----------------------------
+function seedStars(container, count) {
+  if (!container || container.dataset.seeded) return;
+  container.dataset.seeded = "true";
+  for (let i = 0; i < count; i++) {
+    const star = document.createElement("div");
+    star.className = "star";
+    star.style.left = Math.random() * 100 + "%";
+    star.style.top = Math.random() * 70 + "%";
+    star.style.animationDelay = (Math.random() * 3).toFixed(2) + "s";
+    star.style.width = star.style.height = (Math.random() * 2 + 1.5).toFixed(1) + "px";
+    container.appendChild(star);
+  }
+}
+function seedParticles(container, count) {
+  if (!container || container.dataset.seeded) return;
+  container.dataset.seeded = "true";
+  const colors = ["--accent-1", "--accent-2", "--accent-3", "--accent-4", "--accent-5"];
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement("div");
+    p.className = "glow-particle";
+    const size = Math.random() * 10 + 6;
+    p.style.width = p.style.height = size + "px";
+    p.style.left = Math.random() * 100 + "%";
+    p.style.bottom = "-5%";
+    p.style.background = `radial-gradient(circle, var(${colors[i % colors.length]}), transparent 70%)`;
+    p.style.animationDuration = (Math.random() * 14 + 12) + "s";
+    p.style.animationDelay = (Math.random() * 10) + "s";
+    container.appendChild(p);
+  }
+}
+seedStars(document.getElementById("stars-home"), 60);
+seedStars(document.getElementById("stars-main"), 40);
+seedParticles(document.getElementById("particles-home"), 16);
+seedParticles(document.getElementById("particles-main"), 10);
+
+// ----------------------------- CURSOR SPARKLE TRAIL ---------------------------
+const sparkleLayer = document.getElementById("sparkle-layer");
+const sparkleColors = ["#ff8a65", "#ffd76a", "#7ee0c3", "#8e7cff", "#ff6fa5", "#6fd3ff"];
+let lastSparkle = 0;
+function spawnSparkle(x, y) {
+  const now = performance.now();
+  if (now - lastSparkle < 40) return; // throttle for perf
+  lastSparkle = now;
+  const s = document.createElement("div");
+  s.className = "sparkle";
+  s.style.left = x + "px";
+  s.style.top = y + "px";
+  s.style.background = sparkleColors[Math.floor(Math.random() * sparkleColors.length)];
+  s.style.boxShadow = `0 0 8px 2px ${s.style.background}`;
+  sparkleLayer.appendChild(s);
+  setTimeout(() => s.remove(), 720);
+}
+window.addEventListener("pointermove", (e) => spawnSparkle(e.clientX, e.clientY));
+
+// ----------------------------- NAVIGATION -------------------------------------
+const screens = {
+  home: document.getElementById("screen-home"),
+  main: document.getElementById("screen-main"),
+  editor: document.getElementById("screen-editor"),
+};
+function goTo(name) {
+  Object.values(screens).forEach((s) => s.classList.remove("screen--active"));
+  screens[name].classList.add("screen--active");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+document.querySelectorAll("[data-nav]").forEach((el) => {
+  el.addEventListener("click", () => goTo(el.dataset.nav));
+});
+document.getElementById("get-started-btn").addEventListener("click", () => goTo("main"));
+
+// ----------------------------- TOAST -------------------------------------------
+const toastEl = document.getElementById("toast");
+let toastTimer = null;
+function showToast(message, isError = false) {
+  toastEl.textContent = message;
+  toastEl.classList.toggle("toast--error", isError);
+  toastEl.classList.add("toast--show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove("toast--show"), 3200);
+}
+
+// ============================================================================
+// IMAGE EDITOR
+// ============================================================================
+const els = {
+  dropzone: document.getElementById("dropzone"),
+  fileInput: document.getElementById("file-input"),
+  uploadZone: document.getElementById("upload-zone"),
+  workspace: document.getElementById("editor-workspace"),
+  filename: document.getElementById("editor-filename"),
+  dims: document.getElementById("editor-dims"),
+  previewImg: document.getElementById("preview-img"),
+  previewFrame: document.getElementById("preview-frame"),
+  previewStage: document.getElementById("preview-stage"),
+  previewLoading: document.getElementById("preview-loading"),
+  downloadBtn: document.getElementById("download-btn"),
+  downloadFormat: document.getElementById("download-format"),
+  resetCurrentBtn: document.getElementById("reset-current-btn"),
+  resetAllBtn: document.getElementById("reset-all-btn"),
+  viewEdited: document.getElementById("view-edited"),
+  viewOriginal: document.getElementById("view-original"),
+  zoomIn: document.getElementById("zoom-in"),
+  zoomOut: document.getElementById("zoom-out"),
+  zoomFit: document.getElementById("zoom-fit"),
+  zoomReset: document.getElementById("zoom-reset"),
+  zoomLevel: document.getElementById("zoom-level"),
+};
+
+const state = {
+  sessionId: null,
+  originalDataUrl: null,
+  currentDataUrl: null,
+  zoom: 1,
+  viewingOriginal: false,
+};
+
+// ---- Drag & drop / upload -----------------------------------------------
+["dragenter", "dragover"].forEach((evt) =>
+  els.dropzone.addEventListener(evt, (e) => {
+    e.preventDefault();
+    els.dropzone.classList.add("dragover");
+  })
+);
+["dragleave", "drop"].forEach((evt) =>
+  els.dropzone.addEventListener(evt, (e) => {
+    e.preventDefault();
+    els.dropzone.classList.remove("dragover");
+  })
+);
+els.dropzone.addEventListener("drop", (e) => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) handleUpload(file);
+});
+els.fileInput.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (file) handleUpload(file);
+});
+
+function validateFile(file) {
+  const okTypes = ["image/jpeg", "image/jpg", "image/png"];
+  if (!okTypes.includes(file.type)) {
+    showToast("Please upload a JPG, JPEG, or PNG image.", true);
+    return false;
+  }
+  return true;
+}
+
+async function handleUpload(file) {
+  if (!validateFile(file)) return;
+  const formData = new FormData();
+  formData.append("file", file);
+
+  setLoading(true);
+  try {
+    const res = await fetch(`${API_BASE}/upload`, { method: "POST", body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Upload failed.");
+
+    state.sessionId = data.session_id;
+    state.originalDataUrl = data.image;
+    state.currentDataUrl = data.image;
+    state.viewingOriginal = false;
+
+    els.filename.textContent = data.filename;
+    els.dims.textContent = `${data.width} × ${data.height}px`;
+    els.previewImg.src = data.image;
+
+    els.uploadZone.hidden = true;
+    els.workspace.hidden = false;
+    els.downloadBtn.disabled = false;
+    els.resetCurrentBtn.disabled = false;
+    els.resetAllBtn.disabled = false;
+
+    resetZoom();
+    showToast("Image loaded — start editing! ✨");
+  } catch (err) {
+    showToast(err.message || "Something went wrong uploading the image.", true);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function setLoading(isLoading) {
+  els.previewLoading.hidden = !isLoading;
+  els.previewImg.style.opacity = isLoading ? "0.4" : "1";
+}
+
+// ---- Tool tabs -------------------------------------------------------------
+document.querySelectorAll(".tool-tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tool-tab").forEach((t) => t.classList.remove("tool-tab--active"));
+    document.querySelectorAll(".tool-pane").forEach((p) => p.classList.remove("tool-pane--active"));
+    tab.classList.add("tool-tab--active");
+    document.querySelector(`.tool-pane[data-pane="${tab.dataset.tab}"]`).classList.add("tool-pane--active");
+  });
+});
+
+// ---- Live slider labels -----------------------------------------------------
+const liveLabel = (sliderId, labelId, suffix = "") => {
+  const slider = document.getElementById(sliderId);
+  const label = document.getElementById(labelId);
+  if (!slider || !label) return;
+  slider.addEventListener("input", () => (label.textContent = slider.value + suffix));
+};
+liveLabel("brightness-slider", "brightness-val");
+liveLabel("contrast-slider", "contrast-val");
+liveLabel("blur-slider", "blur-val");
+liveLabel("gblur-slider", "gblur-val");
+liveLabel("mblur-slider", "mblur-val");
+liveLabel("thresh-slider", "thresh-val");
+
+// Debounced auto-apply for single sliders (brightness/contrast/threshold)
+function debounce(fn, delay) {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), delay);
+  };
+}
+const debouncedApply = debounce((op, params) => applyOperation(op, params), 260);
+
+document.getElementById("brightness-slider").addEventListener("input", (e) =>
+  debouncedApply("brightness", { value: Number(e.target.value) })
+);
+document.getElementById("contrast-slider").addEventListener("input", (e) =>
+  debouncedApply("contrast", { value: Number(e.target.value) })
+);
+document.getElementById("thresh-slider").addEventListener("input", (e) =>
+  debouncedApply("binary_threshold", { thresh: Number(e.target.value) })
+);
+
+// ---- Tool buttons ------------------------------------------------------------
+document.querySelectorAll("[data-op]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const op = btn.dataset.op;
+    if (op === "original") return showOriginalPreview();
+    if (op === "__reset_current") return resetCurrent();
+    handleToolClick(op);
+  });
+});
+
+function handleToolClick(op) {
+  switch (op) {
+    case "resize": {
+      const w = document.getElementById("resize-w").value;
+      const h = document.getElementById("resize-h").value;
+      if (!w && !h) return showToast("Enter a width or height first.", true);
+      return applyOperation("resize", { width: w || null, height: h || null });
+    }
+    case "rgb_adjust": {
+      const r = Number(document.getElementById("r-slider").value);
+      const g = Number(document.getElementById("g-slider").value);
+      const b = Number(document.getElementById("b-slider").value);
+      return applyOperation("rgb_adjust", { r, g, b });
+    }
+    case "blur":
+      return applyOperation("blur", { ksize: Number(document.getElementById("blur-slider").value) });
+    case "gaussian_blur":
+      return applyOperation("gaussian_blur", { ksize: Number(document.getElementById("gblur-slider").value) });
+    case "median_blur":
+      return applyOperation("median_blur", { ksize: Number(document.getElementById("mblur-slider").value) });
+    case "binary_threshold":
+      return applyOperation("binary_threshold", { thresh: Number(document.getElementById("thresh-slider").value) });
+    case "adaptive_threshold":
+      return applyOperation("adaptive_threshold", { block_size: 11, c: 2 });
+    case "canny": {
+      const t1 = Number(document.getElementById("canny-t1").value);
+      const t2 = Number(document.getElementById("canny-t2").value);
+      return applyOperation("canny", { t1, t2 });
+    }
+    default:
+      return applyOperation(op, {});
+  }
+}
+
+async function applyOperation(operation, params) {
+  if (!state.sessionId) return showToast("Upload an image first.", true);
+  setLoading(true);
+  try {
+    const res = await fetch(`${API_BASE}/process`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: state.sessionId, operation, params }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Processing failed.");
+
+    state.currentDataUrl = data.image;
+    state.viewingOriginal = false;
+    setViewToggle(false);
+    els.previewImg.src = data.image;
+    els.dims.textContent = `${data.width} × ${data.height}px`;
+  } catch (err) {
+    showToast(err.message || "That edit couldn't be applied.", true);
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function resetCurrent() {
+  return runReset("current", "Last edit undone.");
+}
+async function resetAll() {
+  return runReset("all", "Image reset to original.");
+}
+async function runReset(mode, successMessage) {
+  if (!state.sessionId) return;
+  setLoading(true);
+  try {
+    const formData = new FormData();
+    formData.append("session_id", state.sessionId);
+    formData.append("mode", mode);
+    const res = await fetch(`${API_BASE}/reset`, { method: "POST", body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Reset failed.");
+
+    state.currentDataUrl = data.image;
+    state.viewingOriginal = false;
+    setViewToggle(false);
+    els.previewImg.src = data.image;
+    els.dims.textContent = `${data.width} × ${data.height}px`;
+    showToast(successMessage);
+  } catch (err) {
+    showToast(err.message || "Could not reset the image.", true);
+  } finally {
+    setLoading(false);
+  }
+}
+els.resetAllBtn.addEventListener("click", resetAll);
+els.resetCurrentBtn.addEventListener("click", resetCurrent);
+
+function showOriginalPreview() {
+  if (!state.originalDataUrl) return;
+  els.previewImg.src = state.originalDataUrl;
+  setViewToggle(true);
+}
+
+// ---- Original / Edited compare toggle ----------------------------------------
+function setViewToggle(showingOriginal) {
+  state.viewingOriginal = showingOriginal;
+  els.viewOriginal.classList.toggle("compare-toggle__btn--active", showingOriginal);
+  els.viewEdited.classList.toggle("compare-toggle__btn--active", !showingOriginal);
+}
+els.viewOriginal.addEventListener("click", () => {
+  if (!state.originalDataUrl) return;
+  els.previewImg.src = state.originalDataUrl;
+  setViewToggle(true);
+});
+els.viewEdited.addEventListener("click", () => {
+  if (!state.currentDataUrl) return;
+  els.previewImg.src = state.currentDataUrl;
+  setViewToggle(false);
+});
+
+// ---- Download ------------------------------------------------------------------
+els.downloadBtn.addEventListener("click", () => {
+  if (!state.sessionId) return;
+  const fmt = els.downloadFormat.value;
+  const url = `${API_BASE}/download?session_id=${state.sessionId}&format=${fmt}`;
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+
+// ---- Zoom controls ---------------------------------------------------------
+function applyZoom() {
+  els.previewFrame.style.transform = `scale(${state.zoom})`;
+  els.zoomLevel.textContent = Math.round(state.zoom * 100) + "%";
+}
+function resetZoom() {
+  state.zoom = 1;
+  applyZoom();
+}
+els.zoomIn.addEventListener("click", () => {
+  state.zoom = Math.min(3, state.zoom + 0.2);
+  applyZoom();
+});
+els.zoomOut.addEventListener("click", () => {
+  state.zoom = Math.max(0.2, state.zoom - 0.2);
+  applyZoom();
+});
+els.zoomReset.addEventListener("click", resetZoom);
+els.zoomFit.addEventListener("click", () => {
+  state.zoom = 1;
+  applyZoom();
+  els.previewStage.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+});
+
+</script>
+</body>
+</html>
